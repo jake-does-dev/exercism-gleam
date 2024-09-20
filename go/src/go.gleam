@@ -1,4 +1,4 @@
-import gleam/string
+import gleam/result
 
 pub type Player {
   Black
@@ -21,26 +21,19 @@ pub fn apply_rules(
   rule3: fn(Game) -> Result(Game, String),
   rule4: fn(Game) -> Result(Game, String),
 ) -> Game {
-  let rules_applied_game =
+  let result =
     game
-    |> apply_rule(rule1)
-    |> rule2
-    |> apply_rule(rule3)
-    |> apply_rule(rule4)
+    |> rule1
+    |> result.map(rule2)
+    |> result.try(rule3)
+    |> result.try(rule4)
 
-  case string.is_empty(rules_applied_game.error) {
-    False -> Game(..game, error: rules_applied_game.error)
-    True ->
+  case result {
+    Error(error) -> Game(..game, error: error)
+    Ok(game) ->
       case game.player {
-        Black -> Game(..rules_applied_game, player: White)
-        White -> Game(..rules_applied_game, player: Black)
+        Black -> Game(..game, player: White)
+        White -> Game(..game, player: Black)
       }
-  }
-}
-
-fn apply_rule(game: Game, rule: fn(Game) -> Result(Game, String)) -> Game {
-  case rule(game) {
-    Ok(changed) -> changed
-    Error(err) -> Game(..game, error: err)
   }
 }
